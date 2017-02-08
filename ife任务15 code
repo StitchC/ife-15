@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>js 实战test3</title>
+</head>
+<body>
+	 <ul id="source">
+	    <li>北京空气质量：<b>90</b></li>
+	    <li>上海空气质量：<b>70</b></li>
+	    <li>天津空气质量：<b>80</b></li>
+	    <li>广州空气质量：<b>50</b></li>
+	    <li>深圳空气质量：<b>40</b></li>
+	    <li>福州空气质量：<b>32</b></li>
+	    <li>成都空气质量：<b>90</b></li>
+	 </ul>
+     
+
+     <p>各城市空气质量排名</p>
+	 <ul id="resort">
+    
+
+  	 </ul>
+
+  <button id="sort-btn">排序</button>
+  
+  <script type="text/javascript">
+  	var source = document.querySelector("#source");
+  	var resort = document.querySelector("#resort");
+  	var button = document.querySelector("#sort-btn");
+    var liValue = source.getElementsByTagName('li');
+
+    //1.定义一个方法 把source里面数据存入数组并返回此数组
+  	function getData(){
+       var data = new Array();//用作返回数据的数组
+       for (var i = 0; i < liValue.length; i++) {
+       	 data.push(liValue[i].innerText.split("："));
+       }
+       return data;
+  	}
+
+    
+    //2.定一个第二个方法把返回出来的数组进行排序
+    function sortAqiData(data){
+    	data.sort(function(value1,value2){
+    		if (value1[1] > value2[1]) {
+    			return 1;
+    		}else if(value1[1] < value2[1]){
+    			return -1;
+    		}else{
+    			return 0;
+    		}
+    	});
+    }
+
+
+    //3.定义输出数据方法
+    function render(data){
+    	var fragment = document.createDocumentFragment();
+    	for (var i = 0; i < data.length; i++) {
+    		var li = document.createElement("li");
+    		li.appendChild(document.createTextNode("第"+ (i + 1) +"名" + data[i][0] + ":" + data[i][1]));
+    		fragment.appendChild(li);
+    	}
+    	resort.appendChild(fragment);
+    }
+
+    
+    //设置排序按钮点击事件
+    button.onclick = function(){
+    	var result = getData();
+    	sortAqiData(result);
+    	render(result);
+    }
+  </script>
+</body>
+</html>
