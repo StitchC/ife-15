@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>js 实战test5</title>
+	<style type="text/css">
+	    *{
+	    	font-family: "Microsoft Yahei";
+	    }
+		#aqi-chart-wrap{
+			margin-top:30px;
+			border-bottom: 10px solid black;
+		}
+		#aqi-chart-wrap div{
+			display: inline-block;
+			margin-left: 5px;
+			margin-right: 5px;
+		}
+	</style>
+</head>
+<body>
+	<fieldset id="form-gra-time">
+	    <legend>请选择日期粒度：</legend>
+	    <label>日<input name="gra-time" value="day" type="radio" checked="checked"></label>
+	    <label>周<input name="gra-time" value="week" type="radio"></label>
+	    <label>月<input name="gra-time" value="month" type="radio"></label>
+  	</fieldset>
+
+  <fieldset>
+    <legend>请选择查看的城市：</legend>
+    <select id="city-select">
+      
+    </select>
+  </fieldset>
+
+  <div id="aqi-chart-wrap">
+  </div>
+
+  <script type="text/javascript">
+
+  	//-----------------------------初始化数据-------------------------------------
+
+	// 以下两个函数用于随机模拟生成测试数据
+	// 返回格式化后的日期
+	function getDateStr(dat) {
+	  var y = dat.getFullYear();
+	  var m = dat.getMonth() + 1;
+	  m = m < 10 ? '0' + m : m;
+	  var d = dat.getDate();
+	  d = d < 10 ? '0' + d : d;
+	  return y + '-' + m + '-' + d;
+	}
+	function randomBuildData(seed) {
+	  var returnData = {};//创建一个保存城市数据的对象并返回
+	  var dat = new Date("2016-01-01");//初始化时间
+	  var datStr = '';//保存当前日期并设置为返回对象的键
+	  for (var i = 1; i < 92; i++) {
+	  	//每一次循环
+	  	//datStr 保存当前日期字符串
+	  	//每一个日期变成键 它的值是seed * 0-1的随机数
+	  	//当前日期设置为当前日期的后一天的日期
+	  	//最后返回数组
+	    datStr = getDateStr(dat);
+	    returnData[datStr] = Math.ceil(Math.random() * seed);
+	    dat.setDate(dat.getDate() + 1);
+	  }
+	  return returnData;
+	}
+
+	var aqiSourceData = {
+	  "北京": randomBuildData(500),
+	  "上海": randomBuildData(300),
+	  "广州": randomBuildData(200),
+	  "深圳": randomBuildData(100),
+	  "成都": randomBuildData(300),
+	  "西安": randomBuildData(500),
+	  "福州": randomBuildData(100),
+	  "厦门": randomBuildData(100),
+	  "沈阳": randomBuildData(500)
+	};
+
+
+	/**
+	 * 初始化城市Select下拉选择框中的选项
+	 */
+	function initCitySelector() {
+	  // 读取aqiSourceData中的城市，然后设置id为city-select的下拉列表中的选项
+
+	  // 给select设置事件，当选项发生变化时调用函数citySelectChange
+      var cityList = document.querySelector("#city-select");
+	  var fragment = document.createDocumentFragment();
+	  for(city in aqiSourceData){
+			var cityName = city;
+			var option = document.createElement("option");
+            option.appendChild(document.createTextNode(city));
+            option.setAttribute("value",city);
+            fragment.appendChild(option);
+		}
+		cityList.appendChild(fragment);
+
+	}
+
+	
+
+
+	//获取表单的初始值及初始化输出图表
+	function curFormValue(){
+		var timeVal;
+		var cityVal;
+		var allRadios = document.querySelectorAll("#form-gra-time input");
+		var citySelect = document.querySelector("#city-select");
+		for (var i = 0; i < allRadios.length; i++) {
+			if(allRadios[i].checked){
+				timeVal = allRadios[i].value;
+			}
+		}
+
+		cityVal = citySelect.value;
+		renderChart(timeVal,cityVal);
+
+	}
+
+
+	//------------------------------------------------------------------------------
+	
+
+
+
+
+	//----------------------------------格式化数据---------------------------------------
+	// 格式化后的图表数据
+	var chartData = {};
+
+	function isLeapYear(year,month){
+		var amountDays = [31,28,31,30,31,30,31,31,30,31,30,31];
+		if ((month == 1) && (year % 4 == 0) && ((year % 400 != 0) || (year % 100 != 0))) {
+			return 29;
+		}else{
+			return amountDays[month];
+		}
+	}
+
+	function getTotalDays(date){
+		var date = new Date(date);//获取当前日期
+		var curYear = date.getFullYear();//获取当前日期的年
+		var curMonth = date.getMonth();//获取当前日期的月
+		var totalDays = isLeapYear(curYear,curMonth);//获取当前日期的总天数
+		return totalDays;
+	}
+
+
+	/**
+	 * 初始化图表需要的数据格式
+	 */
+	function initAqiChartData() {
+	  // 将原始的源数据处理成图表需要的数据格式
+	  // 处理好的数据存到 chartData 中
+	  
+
+	  //遍历出一个城市的所有数据 
+	  for(city in aqiSourceData){
+	  		var classObject = {};//新建一个保存每个城市分类数据的对象
+	  		var curObject = aqiSourceData[city];//保存当前城市所有空气质量数据的对象
+	  		var avgDateValue = [];//新建一个保存每天空气质量的数组
+	  		var avgMonthValue = [];//新建一个保存每个月空气质量平均值的数组
+	  		var avgWeekValue = [];//新建一个保存每个星期空气质量平均值的数组
+	  		var monthCountDays = 1;//定义计算月份总天数的变量
+	  		var monthSum = 0;//定义求和每个月份天气质数的总和用作求平均值
+	  		var weekSum = 0;//定义求和每个星期天气质数的总和用作平均值
+	  		//开始遍历当前的城市对象
+	  		for(date in curObject){
+	  			avgDateValue.push(curObject[date]);
+	  			//每一次循环都把每一天的空气数据放到avgDateValue数组里
+	  			var monthTotalDate = getTotalDays(date);//获取当前日期月份的总天数
+	  			monthSum += curObject[date];//每一次循环为每月的总和变量不断相加
+	  			weekSum += curObject[date];//每一次循环为每个星期的总和变量不断相加
+	  			monthCountDays++;
+	  			//当总天数等于当前日期月份的总天数时
+	  			if (monthCountDays == monthTotalDate) {
+	  				var monthAvgValue = Math.ceil((monthSum / monthCountDays));//求出当前月份的天气质量平均值
+	  				avgMonthValue.push(monthAvgValue);//月份平均值数组存入当前月份平均值
+	  				avgWeekValue.push()
+	  				monthCountDays = 1;//初始化月份天数
+	  				monthSum = 0;//初始化月份质量总和
+ 					
+ 					weekAvgValue = Math.ceil((weekSum / (monthTotalDate - 28)));
+ 					avgWeekValue.push(weekAvgValue);
+	  				
+	  			}else if(monthCountDays % 7 == 0){
+		  				var weekAvgValue = Math.ceil((weekSum / 7));
+		  				avgWeekValue.push(weekAvgValue);
+		  				weekSum = 0;
+		  		 }
+
+
+	  			
+	  		}
+	  		classObject["day"] = avgDateValue;
+	  		classObject["month"] = avgMonthValue;
+	  		classObject["week"] = avgWeekValue;
+	  		chartData[city] = classObject;
+
+	  }
+	  
+	}
+
+	//-------------------------------------------------------------------------------
+
+
+
+	//----------------------------------图表输出-------------------------------------
+
+
+	/**
+	 * 渲染图表
+	 */
+	function renderChart(time,city) {
+		var chart = document.querySelector("#aqi-chart-wrap");//获取表格的div
+		var divWidth = 0;//初始化柱状的宽度
+		var fragment = document.createDocumentFragment();//创建dom碎片收集器
+
+		//根据单选按钮的值设置柱状的宽度
+		if (time == "day") {
+
+			divWidth = 5;
+
+		}else if(time == "week"){
+
+			divWidth = 10;
+
+		}else if(time == "month"){
+
+			divWidth = 15;
+		}
+		var targetCity = chartData[city];
+		var targetData = targetCity[time];
+		for (var i = 0; i < targetData.length; i++) {
+			var div = document.createElement("div");
+			
+			div.style.width = divWidth + "px";
+			div.style.height = targetData[i] + "px";
+
+			//根据数值设置柱状的高度和颜色
+			if (targetData[i] <= 120) {
+
+				div.style.backgroundColor = "#57B649";
+				div.setAttribute("title","优" + targetData[i]);
+
+			}else if(targetData[i] >120 && targetData[i] <= 200){
+
+				div.style.backgroundColor = "#AFA30C";
+				div.setAttribute("title","良" + targetData[i]);
+
+			}else if(targetData[i] > 200 && targetData[i] < 280){
+
+				div.style.backgroundColor = "#BB7100";
+				div.setAttribute("title","中" + targetData[i]);
+
+			}else if(targetData[i] > 280 && targetData[i] < 360){
+
+				div.style.backgroundColor = "#836038";
+				div.setAttribute("title","差" + targetData[i]);
+
+			}else{
+
+				div.style.backgroundColor = "#D12925";
+				div.setAttribute("title","极差" + targetData[i]);
+
+			}
+
+			fragment.appendChild(div);
+		}
+
+		chart.appendChild(fragment);
+	}
+
+	//清空图标包裹层方法
+	function cleanChart(){
+		var wrap = document.querySelector("#aqi-chart-wrap");
+		wrap.innerHTML = "";
+	}
+
+	//--------------------------------------------------------------------------------
+	
+
+
+	//-------------------------------事件响应-----------------------------------------
+
+	/**
+	 * 日、周、月的radio事件点击时的处理函数
+	 */
+	function graTimeChange() {
+	  // 确定是否选项发生了变化 
+
+	  // 设置对应数据
+
+	  // 调用图表渲染函数
+	  var curTime;
+	  var curCity;
+	  if (this.checked == true) {
+	  	curTime = this.value;
+	  }
+
+	  var citySelect = document.querySelector("#city-select");
+	  curCity = citySelect.value;
+	  cleanChart();
+	  renderChart(curTime,curCity);
+
+	}
+
+	
+	
+
+	/**
+	 * 城市列表发生变化时的处理函数
+	 */
+	function citySelectChange() {
+	  // 确定是否选项发生了变化 
+
+	  // 设置对应数据
+
+	  // 调用图表渲染函数
+	  var allRadios = document.querySelectorAll("#form-gra-time input");
+	  var curTime;
+	  var selectIndex = this.selectedIndex;
+	  var curCity = this.options[selectIndex].text;
+	  for (var i = 0; i < allRadios.length; i++) {
+	  	if(allRadios[i].checked){
+	  		curTime = allRadios[i].value;
+	  	}
+	  }
+
+	  cleanChart();
+	  renderChart(curTime,curCity);
+	}
+
+	
+
+	var citySelect = document.querySelector("#city-select");
+  	var allRadios = document.querySelectorAll("#form-gra-time input");
+  	citySelect.addEventListener("change",citySelectChange,false);//城市列表改变事件
+  	
+  	//事件单选按钮点击事件
+  	for (var i = 0; i < allRadios.length; i++) {
+  		allRadios[i].addEventListener("click",graTimeChange,false);
+  	}
+
+	//------------------------------------------------------------------------------
+
+  	
+	/**
+	 * 初始化函数
+	 */
+	function init() {
+	  initCitySelector();//为城市下拉框赋值
+	  initAqiChartData();//初始化格式数据
+	  curFormValue();
+	}
+	init();
+
+	console.log(chartData);
+  </script>
+</body>
+</html>
