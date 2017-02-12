@@ -7,15 +7,70 @@
 	    *{
 	    	font-family: "Microsoft Yahei";
 	    }
-		#aqi-chart-wrap{
-			margin-top:30px;
-			border-bottom: 10px solid black;
+	    li{
+	    	list-style-type: none;
+	    }
+	    .scale{
+			width: 80%;
+			line-height: 30px;
+			margin: 0 auto;
+			text-align: center;
 		}
-		#aqi-chart-wrap div{
+		.scale li{
 			display: inline-block;
-			margin-left: 5px;
-			margin-right: 5px;
+			vertical-align: middle;
+			text-align: left;
+			width: 120px;
 		}
+		.nice{
+			border-left: 5px solid #57B649;
+		}
+		.greate{
+			border-left: 5px solid #AFA30C;
+		}
+		.notbad{
+			border-left: 5px solid #BB7100;
+		}
+		.bad{
+			border-left: 5px solid #836038;
+		}
+		.worst{
+			border-left: 5px solid #D12925;
+		}
+		.aqi-chart-wrap{
+			width: 80%;
+			height: 550px;
+			overflow-x: scroll;
+			overflow-y: hidden;
+			position: relative;
+			margin:50px auto 0px auto;
+			border: 3px solid black;
+		}
+		#aqi-chart{
+			position: absolute;
+			bottom: 0;
+			padding-left: 30px;
+			padding-right: 150px;
+		}
+		#aqi-chart div{
+			position: relative;
+			display: inline-block;
+			margin-left: 10px;
+		}
+		#aqi-chart div:hover::before{
+			content: attr(data-result);
+			display: inline-block;
+			width: 150px;
+			line-height: 30px;
+			font-size: 13px;
+			position: absolute;
+			border: 1px solid #999;
+			background-color: #ccc;
+			color:#000;
+			top: -30px;
+			z-index: 15;
+		}
+
 	</style>
 </head>
 <body>
@@ -33,9 +88,16 @@
     </select>
   </fieldset>
 
-  <div id="aqi-chart-wrap">
-  </div>
-
+	<ul class="scale">
+		<li class="nice">< 120 优</li>
+		<li class="greate">200 良</li>
+		<li class="notbad">280 中</li>
+		<li class="bad">360 差</li>
+		<li class="worst">>360 极差</li>
+  	</ul>
+  	<div class="aqi-chart-wrap">
+    	<div id="aqi-chart"></div>
+  	</div>
   <script type="text/javascript">
 
   	//-----------------------------初始化数据-------------------------------------
@@ -148,6 +210,18 @@
 		return totalDays;
 	}
 
+	function getCurMonth(date){
+		var date = new Date(date);
+		var curMonth = date.getMonth();
+		return curMonth;
+	}
+
+	function getCurYear(date){
+		var date = new Date(date);
+		var curYear = date.getFullYear();
+		return curYear;
+	}
+
 
 	/**
 	 * 初始化图表需要的数据格式
@@ -161,35 +235,43 @@
 	  for(city in aqiSourceData){
 	  		var classObject = {};//新建一个保存每个城市分类数据的对象
 	  		var curObject = aqiSourceData[city];//保存当前城市所有空气质量数据的对象
-	  		var avgDateValue = [];//新建一个保存每天空气质量的数组
-	  		var avgMonthValue = [];//新建一个保存每个月空气质量平均值的数组
-	  		var avgWeekValue = [];//新建一个保存每个星期空气质量平均值的数组
+	  		var avgDateValue = {};//新建一个保存每天空气质量的对象
+	  		var avgMonthValue = {};//新建一个保存每个月空气质量平均值的数组
+	  		var avgWeekValue = {};//新建一个保存每个星期空气质量平均值的数组
 	  		var monthCountDays = 1;//定义计算月份总天数的变量
 	  		var monthSum = 0;//定义求和每个月份天气质数的总和用作求平均值
 	  		var weekSum = 0;//定义求和每个星期天气质数的总和用作平均值
+	  		var countWeek = 1;//输出当前是第几周
 	  		//开始遍历当前的城市对象
 	  		for(date in curObject){
-	  			avgDateValue.push(curObject[date]);
+	  			avgDateValue[date] = curObject[date];
 	  			//每一次循环都把每一天的空气数据放到avgDateValue数组里
 	  			var monthTotalDate = getTotalDays(date);//获取当前日期月份的总天数
 	  			monthSum += curObject[date];//每一次循环为每月的总和变量不断相加
 	  			weekSum += curObject[date];//每一次循环为每个星期的总和变量不断相加
-	  			monthCountDays++;
+	  			monthCountDays++;//每一次循环为当前遍历到的天数加1
 	  			//当总天数等于当前日期月份的总天数时
 	  			if (monthCountDays == monthTotalDate) {
 	  				var monthAvgValue = Math.ceil((monthSum / monthCountDays));//求出当前月份的天气质量平均值
-	  				avgMonthValue.push(monthAvgValue);//月份平均值数组存入当前月份平均值
-	  				avgWeekValue.push()
+	  				var curMonthNum = getCurMonth(date);//当当前日期等于当前月天数的时候获取当前月
+	  				avgMonthValue[(curMonthNum + 1) + "月平均空气质量"] = monthAvgValue;//月份平均值数组存入当前月份平均值
 	  				monthCountDays = 1;//初始化月份天数
 	  				monthSum = 0;//初始化月份质量总和
  					
+ 					
+ 					//当遍历到月份的最后一天时
+ 					//将剩下的几天当作一个星期 月份总天数减去额定的4个星期天数取平均值
  					weekAvgValue = Math.ceil((weekSum / (monthTotalDate - 28)));
- 					avgWeekValue.push(weekAvgValue);
+ 					curWeekNum = getCurYear(date) + "年" + (getCurMonth(date) + 1) + "月" + "第" + countWeek + "周空气平均质量：";//定义周数
+ 					avgWeekValue[curWeekNum] = weekAvgValue;//为周平均值对象添加属性
+ 					countWeek = 1;//初始化周数
 	  				
 	  			}else if(monthCountDays % 7 == 0){
 		  				var weekAvgValue = Math.ceil((weekSum / 7));
-		  				avgWeekValue.push(weekAvgValue);
-		  				weekSum = 0;
+		  				var curWeekNum = getCurYear(date) + "年" + (getCurMonth(date) + 1) + "月" + "第" + countWeek + "周空气平均质量：";
+		  				avgWeekValue[curWeekNum] = weekAvgValue;
+		  				countWeek++;//周数自增一
+		  				weekSum = 0;//初始化周总数的数据
 		  		 }
 
 
@@ -215,7 +297,7 @@
 	 * 渲染图表
 	 */
 	function renderChart(time,city) {
-		var chart = document.querySelector("#aqi-chart-wrap");//获取表格的div
+		var chart = document.querySelector("#aqi-chart");//获取表格的div
 		var divWidth = 0;//初始化柱状的宽度
 		var fragment = document.createDocumentFragment();//创建dom碎片收集器
 
@@ -232,51 +314,61 @@
 
 			divWidth = 15;
 		}
-		var targetCity = chartData[city];
-		var targetData = targetCity[time];
-		for (var i = 0; i < targetData.length; i++) {
+		var targetCity = chartData[city];//获取选中的城市名
+		var targetData = targetCity[time];//获取选中的时间段
+		for(time in targetData){
 			var div = document.createElement("div");
 			
 			div.style.width = divWidth + "px";
-			div.style.height = targetData[i] + "px";
+			div.style.height = targetData[time] + "px";
 
 			//根据数值设置柱状的高度和颜色
-			if (targetData[i] <= 120) {
+			if (targetData[time] <= 120) {
 
 				div.style.backgroundColor = "#57B649";
-				div.setAttribute("title","优" + targetData[i]);
+				div.setAttribute("title",time + "：" + targetData[time]+ "  优");
+				div.setAttribute("data-result",time + "：" + targetData[time]+ "  优");
 
-			}else if(targetData[i] >120 && targetData[i] <= 200){
+			}else if(targetData[time] >120 && targetData[time] <= 200){
 
 				div.style.backgroundColor = "#AFA30C";
-				div.setAttribute("title","良" + targetData[i]);
+				div.setAttribute("title",time + "：" + targetData[time]+ "  良");
+				div.setAttribute("data-result",time + "：" + targetData[time]+ "  良");
 
-			}else if(targetData[i] > 200 && targetData[i] < 280){
+			}else if(targetData[time] > 200 && targetData[time] < 280){
 
 				div.style.backgroundColor = "#BB7100";
-				div.setAttribute("title","中" + targetData[i]);
+				div.setAttribute("title",time + "：" + targetData[time]+ "  中");
+				div.setAttribute("data-result",time + "：" + targetData[time]+ "  中");
 
-			}else if(targetData[i] > 280 && targetData[i] < 360){
+			}else if(targetData[time] > 280 && targetData[time] < 360){
 
 				div.style.backgroundColor = "#836038";
-				div.setAttribute("title","差" + targetData[i]);
+				div.setAttribute("title",time + "：" + targetData[time]+ "  差");
+				div.setAttribute("data-result",time + "：" + targetData[time]+ "  差");
 
 			}else{
 
 				div.style.backgroundColor = "#D12925";
-				div.setAttribute("title","极差" + targetData[i]);
+				div.setAttribute("title",time + "：" + targetData[time]+ "  极差");
+				div.setAttribute("data-result",time + "：" + targetData[time]+ "  极差");
 
 			}
 
 			fragment.appendChild(div);
 		}
+		
 
 		chart.appendChild(fragment);
+		var divs = document.querySelectorAll("#aqi-chart div");
+		var divLen = divs.length;
+		chart.style.width = (divWidth + 10) * divLen + "px";
+		
 	}
 
-	//清空图标包裹层方法
+	//清空图表包内容方法
 	function cleanChart(){
-		var wrap = document.querySelector("#aqi-chart-wrap");
+		var wrap = document.querySelector("#aqi-chart");
 		wrap.innerHTML = "";
 	}
 
@@ -358,7 +450,6 @@
 	}
 	init();
 
-	console.log(chartData);
   </script>
 </body>
 </html>
