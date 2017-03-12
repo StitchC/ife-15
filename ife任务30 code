@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>js ife任务30</title>
+	<style type="text/css">
+	html,body,div,a,span,p,i,b,form,label{
+		padding: 0;
+		margin: 0;
+		border: 0;
+	}
+	input:focus,button:focus{
+		outline: none;
+	}
+	.message{
+		margin-top: 20px;
+	}
+	.wrap-input{
+		width: 385px;
+		line-height: 30px;
+	}
+	.wrap-input label,.wrap-input div{
+		display: inline-block;
+	}
+	.wrap-input label{
+		width: 120px;
+		text-align: right;
+	}
+	.wrap-input div{
+		vertical-align: text-top;
+	}
+	.wrap-text input,.wrap-text span{
+		display: block;
+	}
+	.wrap-text input{
+		width: 250px;
+		line-height: 25px;
+		padding-left: 5px;
+		border: 1px solid #999;
+		border-radius: 5px;
+	}
+	.alert-message{
+		visibility: hidden;
+		font-size: 12px;
+
+	}
+	.wrap-submit{
+		width: 379px;
+		line-height: 25px;
+		text-align: right;
+	}
+	#ife-submit{
+		display: inline-block;
+		width: 80px;
+		line-height: 25px;
+		text-align: center;
+		vertical-align: middle;
+		border: 1px solid #2F79BA;
+		border-radius: 5px;
+		background-color: #2F79BA;
+		color: #fff;
+	}
+	</style>
+</head>
+<body>
+	<form class="message">
+		<div class="wrap-input">
+			<label>名称</label>
+			<div class="wrap-text">
+				<input type="text" id="username">
+				<span id="username-alert" class="alert-message">输入正确</span>
+			</div>
+		</div>
+		<div class="wrap-input">
+			<label>密码</label>
+			<div class="wrap-text">
+				<input type="password" id="password">
+				<span id="password-alert" class="alert-message">输入正确</span>
+			</div>
+		</div>
+		<div class="wrap-input">
+			<label>确认密码</label>
+			<div class="wrap-text">
+				<input type="password" id="confirm-pwd">
+				<span id="confirm-pwd-alert" class="alert-message">输入正确</span>
+			</div>
+		</div>
+		<div class="wrap-input">
+			<label>邮箱</label>
+			<div class="wrap-text">
+				<input type="text" id="email">
+				<span id="email-alert" class="alert-message">输入正确</span>
+			</div>
+		</div>
+		<div class="wrap-input">
+			<label>手机</label>
+			<div class="wrap-text">
+				<input type="text" id="mobile-phone">
+				<span id="mobile-phone" class="alert-message">输入正确</span>
+			</div>
+		</div>
+		<div class="wrap-submit">
+			<button id="ife-submit">提交</button>
+		</div>
+	</form>
+
+
+	<script type="text/javascript">
+		//思路
+		//获取所有input 元素根据对应的id 做出事件响应
+		//定义输入提示、错误提示、正确提示的提示串数组
+		//定义不同的正则表达式
+		
+
+		function CheckInput(obj){
+			this.inputs = obj.allInput; //获取所有的input 元素
+			this.regs = obj.allReg; //获取所有的正则表达式
+			this.hints = obj.allHint; //获取所有的提示信息
+			this.EventUntil; //设置跨浏览器事件
+			this.correctNum = 0; //设置正确的input 个数初始值
+			this.submit = obj.submitBtn;
+			this.rendar();
+		}
+
+		CheckInput.prototype = {
+			constructor: CheckInput,//指定构造函数指针
+
+			//初始化数据
+			init: function(){
+
+				this.EventUntil = {
+					addHandler:function(elem,type,handler){
+						if (elem.addEventListener) {
+							//如果可以用dom2 的方法
+							elem.addEventListener(type,handler,false);
+						}else if(elem.attachEvent){
+							//如果可以用ie 的方法
+							elem.attachEvent("on" + type,handler);
+						}else{
+							elem["on" + type] = handler;
+						}
+					},
+
+					//获取事件对象
+					getEvent: function(type){
+						return type? event:window.event;
+					},
+		        	//获取事件的实际目标
+					getTarget: function(event){
+						return event.target || event.srcElement;
+					},
+
+					preventDefault: function(event){
+						if (event.preventDefault) {
+							event.preventDefault();
+						}else{
+							event.returnValue = false;
+						}
+					}
+				}
+			},
+
+			//input 输入框获取焦点事件
+			inputOnfocus: function(){
+				var that = this;
+				for (var i = 0; i < this.inputs.length; i++) {
+					this.EventUntil.addHandler(that.inputs[i],"focus",function(event){
+						var event = that.EventUntil.getEvent(event);
+						var target = that.EventUntil.getTarget(event);
+						//获取第二个子元素即提示的内容
+						var hintContent = this.parentNode.childNodes[3]; 
+
+						this.style.borderColor = "#2F79BA";
+						hintContent.innerText = that.hints[target.id].hint;
+						hintContent.style.visibility = "visible";
+
+					})
+				}
+			},
+
+			inputOnblur: function(){
+				var that = this;
+				for (var i = 0; i < this.inputs.length; i++) {
+					//遍历时为每一个input 元素添加一个属性 用来记录内容是否正确
+					that.inputs[i].isCorrect = false;
+
+					this.EventUntil.addHandler(that.inputs[i],"blur",function(){
+
+						var event = that.EventUntil.getEvent(event);
+						var target = that.EventUntil.getTarget(event);
+						//获取第二个子元素即提示的内容
+						var hintContent = target.parentNode.childNodes[3]; 
+
+
+						//如果失焦元素为 confirm-pwd
+						if (target.id == "confirm-pwd") {
+							//而且它的值等于密码框输入的值
+							if (target.value == (document.querySelector("#password")).value && target.value != "") {
+								target.style.borderColor = "green";
+								hintContent.innerText = that.hints[target.id].correct;
+								hintContent.style.color = "green";
+								hintContent.style.visibility = "visible";
+
+								target.isCorrect = true;
+								
+								
+							}else{
+								target.style.borderColor = "red";
+								hintContent.innerText = that.hints[target.id].error;
+								hintContent.style.color = "red";
+								hintContent.style.visibility = "visible";
+
+								target.isCorrect = false;
+								
+							}
+							//其他输入框失焦时
+						}else{
+							if (that.regs[target.id].test(target.value)) {
+								target.style.borderColor = "green";
+								hintContent.innerText = that.hints[target.id].correct;
+								hintContent.style.color = "green";
+								hintContent.style.visibility = "visible";
+
+								target.isCorrect = true;
+								
+
+							}else{
+								target.style.borderColor = "red";
+								hintContent.innerText = that.hints[target.id].error;
+								hintContent.style.color = "red";
+								hintContent.style.visibility = "visible";
+
+								target.isCorrect = false;
+							}
+						}
+						
+						
+						
+					})
+				}
+			},
+
+			submitClick: function(){
+				var that = this;
+				this.submit.onclick = function(){
+					var allCorrect = 0;
+					
+					for (var i = 0; i < that.inputs.length; i++) {
+						if (that.inputs[i].isCorrect) {
+							allCorrect += 1;
+						}
+
+					}
+					if (allCorrect == that.inputs.length) {
+						alert("提交成功");
+					}else{
+						alert("提交失败");
+					}
+
+					return false;
+				}
+			},
+
+			rendar: function(){
+				this.init();
+				this.inputOnfocus();
+				this.inputOnblur();
+				this.submitClick();
+			}
+		}
+		
+
+		var checkInput = new CheckInput({
+			allInput: document.querySelectorAll(".message input"),
+			allHint: {
+				"username": {hint:"必填，长度为4~16位字符",error:"输入不正确",correct:"输入正确"},
+
+				"password": {hint:"必填，长度为4~16位字符,包含字母和数字",error:"输入不正确",correct:"输入正确"},
+
+				"confirm-pwd":{hint:"必须和密码一致",error:"和密码不一致",correct:"密码正确"},
+
+				"email": {hint:"请填写正确的邮箱地址",error:"输入不正确",correct:"输入正确"},
+
+				"mobile-phone": {hint:"请填写正确的手机号码",error:"输入不正确",correct:"输入正确"}
+			},
+			allReg: {
+				"username": /[\S\w\d\u4E00-\u9FA5\uF900-\uFA2D]{4,16}/, //用户名正则
+				"password":/[\d\w]{4,16}/, //密码正则
+				"email":/^([\d\w]+[_|\_|\.]?)*[\d\w]+@([\d\w]+[_|\_|\.]?)*[\d\w]+\.[\w]{2,3}/, //邮箱正则
+				"mobile-phone": /^[1][0-9]{10}/
+			},
+			submitBtn: document.querySelector("#ife-submit")
+		});
+
+
+	</script>
+</body>
+</html>
