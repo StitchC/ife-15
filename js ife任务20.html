@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>js ife任务20</title>
+	<style type="text/css">
+	#result div{
+		display: inline-block;
+		background-color: green;
+		text-align: center;
+		width: 100px;
+		line-height: 100px;
+		color: #fff;
+		margin-left: 5px;
+		margin-right: 5px;
+		margin-top: 5px;
+	}
+	</style>
+</head>
+<body>
+	<textarea id="addText"></textarea>
+	<input type="button" name="" id="add" value="添加元素">
+	
+	<p>
+		输入搜索字
+		<input type="text" name="searh" id="search-input">
+		<input type="button" name="" id="search-bt" value="搜索">
+	</p>
+	
+
+	<h2>当前队列</h2>
+	<div id="result"></div>
+
+	<script type="text/javascript">
+		//知识点：
+		//split() 方法与正则表达式 split() 方法的参数可以是正则表达式
+		//把新的字符串数组连接到原来的数组中 concat方法
+		var addBt = document.querySelector("#add");
+		var searchBt = document.querySelector("#search-bt");
+		var resultArr = new Array("30","50","20");
+		
+
+		outPutValue();
+
+
+		addBt.addEventListener("click",add,false);
+		searchBt.addEventListener("click",search,false);
+
+		function outPutValue(){
+			var resultDiv = document.querySelector("#result");
+			var fragment = document.createDocumentFragment();
+			for (var i = 0; i < resultArr.length; i++) {
+				var div = document.createElement("div");
+				div.innerText = resultArr[i];
+				fragment.appendChild(div);
+			}
+			resultDiv.innerHTML = "";
+			resultDiv.appendChild(fragment);
+		}
+
+
+
+		function add(){
+			var inputText = document.querySelector("#addText");
+			var resultDiv = document.querySelector("#result");
+			var value = inputText.value;
+			var valueArr = value.split(/[\n\f\r\t\v\s,.?!;:，。？！；：]/);
+			resultArr = resultArr.concat(valueArr);
+			inputText.value = "";
+			outPutValue();
+		}
+
+		
+		function search(){
+			var searchInput = document.querySelector("#search-input");
+
+			//获取效果区域中的所有子元素
+			var resultDiv = document.querySelector("#result");
+			var children = resultDiv.childNodes;
+
+			var searchValue = searchInput.value;
+			var reg = new RegExp(searchValue);//利用搜索的内容建立正则表达式
+
+			for (var i = 0; i < children.length; i++) {
+				if(reg.test(children[i].innerText)){
+					children[i].style.backgroundColor = "red";
+				}
+			}
+			searchInput.value = "";
+		}
+
+
+		var hobby = new Hobby();
+		console.log(hobby);
+
+		function Hobby(){
+	 		this.name = "hovvy";
+	 	}
+
+	 	Hobby.prototype.sayHello = function(){
+	 		console.log("hello");
+	 	}
+	</script>
+</body>
+</html>
